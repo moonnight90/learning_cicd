@@ -1,0 +1,26 @@
+name: Docker Image
+
+on:
+  workflow_run:
+    workflows:
+      - Django Tests
+    types:
+      - completed
+
+jobs:
+  build:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.workflow_run.head_repository.full_name }}
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Build Docker image
+        run: docker build --tag django-app:${{ github.event.workflow_run.head_sha }} .
+
+      - name: Run Django checks inside the image
+        run: docker run --rm django-app:${{ github.event.workflow_run.head_sha }} python manage.py check
